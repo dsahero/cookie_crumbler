@@ -1,4 +1,4 @@
-// Cookie Crumbler Background Script
+// CookieCrumblr background script
 // Monitors and scrambles tracking cookies in real-time
 
 // Track if we're currently processing to prevent overlapping scans
@@ -9,7 +9,7 @@ const ignoredCookieNames = ['_dd_s', '_abck'];
 
 // Initialize on extension install
 browser.runtime.onInstalled.addListener(() => {
-  console.log('Cookie Crumbler installed');
+  console.log('CookieCrumblr installed');
   // Scan existing cookies on install
   scanAndProcessCookies();
 });
@@ -51,4 +51,4 @@ browser.cookies.onChanged.addListener(async (changeInfo) => {
   }
 });
 
-console.log('Cookie Crumbler background script loaded');
+console.log('CookieCrumblr background script loaded');

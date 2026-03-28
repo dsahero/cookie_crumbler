@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "Cookie Crumbler",
+  "name": "CookieCrumblr",
   "version": "1.0.0",
   "description": "Protecting children and targeted minorities by simplifying cookie and privacy management with AI-powered classification.",
 
@@ -12,7 +12,7 @@
   "browser_action": {
     "default_icon": "icons/icon48.png",
     "default_popup": "popup.html",
-    "default_title": "Cookie Crumbler"
+    "default_title": "CookieCrumblr"
   },
 
   "permissions": [

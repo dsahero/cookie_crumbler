@@ -10,8 +10,8 @@ export default function CookieCard({
   name,
   category,
   categoryKind,
-  allowed,
-  onToggle,
+  crumbled,
+  onCrumble,
   onDelete,
 }) {
   return (
@@ -25,25 +25,30 @@ export default function CookieCard({
         </span>
       </div>
       <div className="cookie-card__actions">
-        <button
-          type="button"
-          className={`cookie-card__btn cookie-card__btn--primary ${
-            allowed ? 'cookie-card__btn--block' : 'cookie-card__btn--allow'
-          }`}
-          onClick={onToggle}
-          aria-label={
-            allowed
-              ? `Block cookie ${name}`
-              : `Unblock cookie ${name}`
-          }
-        >
-          {allowed ? 'Block' : 'Unblock'}
-        </button>
+        {crumbled ? (
+          <button
+            type="button"
+            className="cookie-card__btn cookie-card__btn--primary cookie-card__btn--crumbled"
+            disabled
+            aria-label={`${name}: already crumbled. This cookie is stopped and cannot be restored on this screen.`}
+          >
+            Crumbled
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="cookie-card__btn cookie-card__btn--primary cookie-card__btn--crumble"
+            onClick={onCrumble}
+            aria-label={`Crumble cookie ${name}: permanently stop it. This cannot be undone on this screen.`}
+          >
+            Crumble
+          </button>
+        )}
         <button
           type="button"
           className="cookie-card__btn cookie-card__btn--delete"
           onClick={onDelete}
-          aria-label={`Delete cookie ${name}`}
+          aria-label={`Delete ${name} from this list`}
         >
           Delete
         </button>

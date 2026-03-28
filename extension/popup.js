@@ -1,4 +1,4 @@
-// Cookie Crumbler Popup Script
+// CookieCrumblr popup script
 // Handles user-triggered cookie scrambling
 
 // Wait for DOM to load
