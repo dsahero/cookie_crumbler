@@ -1,6 +1,8 @@
 // Cookie Crumbler Popup Script
 // Bridges React UI with browser extension APIs and backend
 
+console.log('🔵 popup.js script file loaded');
+
 // Message types for communication with React
 const MESSAGE_TYPES = {
   INIT_DATA: 'INIT_DATA',
@@ -29,20 +31,57 @@ document.addEventListener('DOMContentLoaded', () => {
 // Initialize popup with current cookie data
 async function initializePopup() {
   try {
-    console.log('Initializing popup...');
+    console.log('🚀 POPUP INITIALIZATION STARTED');
+    console.log('Scrambled tracker size:', scrambledCookiesTracker.size);
+    console.log('Scanned tracker size:', scannedCookiesTracker.size);
     
     // Get all cookies from browser
     const allCookies = await browser.cookies.getAll({});
     console.log(`Found ${allCookies.length} cookies`);
     
-    // Classify cookies (using existing cookieManager.js logic)
-    const classifiedCookies = await classifyAllCookies(allCookies);
+    // Classify cookies and check against global trackers
+    const classifiedCookies = [];
+    
+    for (const cookie of allCookies) {
+      const wasScrambled = isScrambled(cookie);
+      const wasScanned = isScanned(cookie);
+      
+      // Classify if not already scanned
+      let category;
+      if (wasScanned && !wasScrambled) {
+        category = 'necessary';
+      } else if (wasScrambled) {
+        category = 'tracking';
+      } else {
+        category = await classifyCookie(cookie);
+      }
+      
+      classifiedCookies.push({
+        name: cookie.name,
+        domain: cookie.domain,
+        value: cookie.value,
+        path: cookie.path,
+        secure: cookie.secure,
+        httpOnly: cookie.httpOnly,
+        expirationDate: cookie.expirationDate,
+        category: mapCategoryToUI(category),
+        categoryKind: category,
+        allowed: category !== 'tracking' // Tracking cookies are NOT allowed
+      });
+    }
     
     // Get current settings from storage
     const settings = await getSettings();
     
-    // Calculate statistics
-    const stats = calculateStats(classifiedCookies);
+    // Calculate statistics from global trackers
+    const stats = {
+      total: allCookies.length,
+      harmful: scrambledCookiesTracker.size,
+      safe: scannedCookiesTracker.size - scrambledCookiesTracker.size
+    };
+    
+    console.log('📊 STATS CALCULATED:', stats);
+    console.log('📋 CLASSIFIED COOKIES COUNT:', classifiedCookies.length);
     
     // Send initial data to React app
     sendToReact({
@@ -54,10 +93,10 @@ async function initializePopup() {
       }
     });
     
-    console.log('Popup initialized with', stats);
+    console.log('✅ POPUP INITIALIZATION COMPLETE');
     
   } catch (error) {
-    console.error('Error initializing popup:', error);
+    console.error('❌ Error initializing popup:', error);
   }
 }
 
@@ -68,7 +107,12 @@ async function handleReactMessage(event) {
   
   const { type, payload } = event.data;
   
-  console.log('📨 Received message from React:', type, payload);
+  // Ignore messages we sent ourselves (from sendToReact)
+  if (!type || type === MESSAGE_TYPES.INIT_DATA || type === MESSAGE_TYPES.SCRAMBLE_COMPLETE || type === MESSAGE_TYPES.COOKIES_DATA || type === 'COOKIE_STATS' || type === 'ERROR') {
+    return;
+  }
+  
+  console.log('� popup.js received from React:', type, payload);
   
   switch (type) {
     case MESSAGE_TYPES.TOGGLE_PROTECTION:
@@ -111,31 +155,6 @@ async function handleReactMessage(event) {
   }
 }
 
-// Classify all cookies using existing logic
-async function classifyAllCookies(cookies) {
-  const classified = [];
-  
-  for (const cookie of cookies) {
-    // Use existing classifyCookie function from cookieManager.js
-    const category = await classifyCookie(cookie);
-    
-    classified.push({
-      name: cookie.name,
-      domain: cookie.domain,
-      value: cookie.value,
-      path: cookie.path,
-      secure: cookie.secure,
-      httpOnly: cookie.httpOnly,
-      expirationDate: cookie.expirationDate,
-      category: mapCategoryToUI(category),
-      categoryKind: category,
-      allowed: category === 'tracking' // Tracking cookies are "allowed" to be blocked
-    });
-  }
-  
-  return classified;
-}
-
 // Map backend category to UI-friendly name
 function mapCategoryToUI(category) {
   const mapping = {
@@ -145,18 +164,6 @@ function mapCategoryToUI(category) {
     'marketing': 'Marketing'
   };
   return mapping[category] || 'Unknown';
-}
-
-// Calculate cookie statistics
-function calculateStats(cookies) {
-  const harmful = cookies.filter(c => c.allowed).length; // Tracking cookies
-  const safe = cookies.filter(c => !c.allowed).length;   // Necessary cookies
-  
-  return {
-    total: cookies.length,
-    harmful: harmful,
-    safe: safe
-  };
 }
 
 // Get settings from browser storage
@@ -306,6 +313,7 @@ async function sendCookieStats() {
 
 // Send message to React app
 function sendToReact(message) {
+  console.log('📤 popup.js sending to React:', message.type, message.payload);
   window.postMessage(message, '*');
 }
 

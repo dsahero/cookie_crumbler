@@ -6,37 +6,18 @@ import cookieCrumbledUrl from '../extension/CookieCrumbled.png?url';
 import cookieUncrumbledUrl from '../extension/CookieUncrumbled.png?url';
 import './App.css';
 
-const COOKIE_ROWS = [
-  {
-    name: '_ga',
-    category: 'Analytics',
-    categoryKind: 'analytics',
-    crumbled: false,
-  },
-  {
-    name: '_fbp',
-    category: 'Marketing',
-    categoryKind: 'marketing',
-    crumbled: true,
-  },
-  {
-    name: 'session_id',
-    category: 'Functional',
-    categoryKind: 'functional',
-    crumbled: true,
-  },
-  {
-    name: '_gid',
-    category: 'Analytics',
-    categoryKind: 'analytics',
-    crumbled: false,
-  },
-];
-
-/** Names that are crumbled while protection is on (re-applied when protection turns on). */
-const PROTECTION_DEFAULT_CRUMBLED = Object.fromEntries(
-  COOKIE_ROWS.map((row) => [row.name, row.crumbled]),
-);
+// Message types for communication with popup.js
+const MESSAGE_TYPES = {
+  INIT_DATA: 'INIT_DATA',
+  TOGGLE_PROTECTION: 'TOGGLE_PROTECTION',
+  TOGGLE_BLOCK_HARMFUL: 'TOGGLE_BLOCK_HARMFUL',
+  TOGGLE_CLIPBOARD: 'TOGGLE_CLIPBOARD',
+  TOGGLE_COOKIE_ALLOWED: 'TOGGLE_COOKIE_ALLOWED',
+  DELETE_COOKIE: 'DELETE_COOKIE',
+  REFRESH_COOKIES: 'REFRESH_COOKIES',
+  SCRAMBLE_COMPLETE: 'SCRAMBLE_COMPLETE',
+  COOKIES_DATA: 'COOKIES_DATA'
+};
 
 const LOCK_HINT_SUMMARY =
   'Turn on protection to use the cookie summary.';
@@ -45,20 +26,61 @@ const LOCK_HINT_SETTINGS =
 const LOCK_HINT_ADVANCED =
   'Turn on protection to open advanced controls.';
 
-const initialCookieCrumbledByName = () =>
-  Object.fromEntries(COOKIE_ROWS.map((row) => [row.name, row.crumbled]));
+// Send message to popup.js
+function sendToPopup(type, payload) {
+  console.log('📤 React sending to popup.js:', type, payload);
+  window.postMessage({ type, payload, source: 'react' }, '*');
+}
 
 export default function App() {
   const [screen, setScreen] = useState('main');
   const [protectionOn, setProtectionOn] = useState(true);
   const [blockHarmful, setBlockHarmful] = useState(true);
   const [clipboardProtection, setClipboardProtection] = useState(false);
-  const [cookieRows, setCookieRows] = useState(() => [...COOKIE_ROWS]);
-  const [cookieCrumbledByName, setCookieCrumbledByName] = useState(
-    initialCookieCrumbledByName,
-  );
+  const [cookieRows, setCookieRows] = useState([]);
+  const [stats, setStats] = useState({ total: 0, harmful: 0, safe: 0 });
   const [exitingNames, setExitingNames] = useState(() => new Set());
   const [helpOpen, setHelpOpen] = useState(false);
+
+  // Listen for messages from popup.js
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.source !== window) return;
+      
+      const { type, payload } = event.data;
+      
+      // Only process messages from popup.js (not our own)
+      if (event.data.source === 'react') return;
+      
+      console.log('📥 React received from popup.js:', type, payload);
+      
+      switch (type) {
+        case MESSAGE_TYPES.INIT_DATA:
+          console.log('🎯 Setting initial data - cookies:', payload.cookies?.length, 'stats:', payload.stats);
+          setCookieRows(payload.cookies || []);
+          setStats(payload.stats || { total: 0, harmful: 0, safe: 0 });
+          setProtectionOn(payload.settings?.protectionOn ?? true);
+          setBlockHarmful(payload.settings?.blockHarmful ?? true);
+          setClipboardProtection(payload.settings?.clipboardProtection ?? false);
+          console.log('✅ Initial data set in React state');
+          break;
+          
+        case MESSAGE_TYPES.COOKIES_DATA:
+          console.log('🎯 Updating cookies data - cookies:', payload.cookies?.length, 'stats:', payload.stats);
+          setCookieRows(payload.cookies || []);
+          setStats(payload.stats || { total: 0, harmful: 0, safe: 0 });
+          console.log('✅ Cookies data updated in React state');
+          break;
+          
+        case MESSAGE_TYPES.SCRAMBLE_COMPLETE:
+          console.log('Scramble complete:', payload);
+          break;
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   useEffect(() => {
     if (screen !== 'details') setHelpOpen(false);
@@ -74,23 +96,16 @@ export default function App() {
   }, [helpOpen]);
 
   const crumbleCookie = (name) => {
-    setCookieCrumbledByName((prev) => {
-      if (prev[name]) return prev;
-      return { ...prev, [name]: true };
-    });
+    sendToPopup(MESSAGE_TYPES.TOGGLE_COOKIE_ALLOWED, { cookieName: name, allowed: false });
   };
 
   const requestDeleteCookie = (name) => {
     setExitingNames((prev) => new Set(prev).add(name));
+    sendToPopup(MESSAGE_TYPES.DELETE_COOKIE, { cookieName: name });
   };
 
   const finishRemoveCookie = useCallback((name) => {
     setCookieRows((rows) => rows.filter((row) => row.name !== name));
-    setCookieCrumbledByName((prev) => {
-      const next = { ...prev };
-      delete next[name];
-      return next;
-    });
     setExitingNames((prev) => {
       const next = new Set(prev);
       next.delete(name);
@@ -106,12 +121,7 @@ export default function App() {
 
   const handleRestart = useCallback(() => {
     setScreen('main');
-    setProtectionOn(true);
-    setBlockHarmful(true);
-    setClipboardProtection(false);
-    setCookieRows([...COOKIE_ROWS]);
-    setCookieCrumbledByName(initialCookieCrumbledByName());
-    setExitingNames(new Set());
+    sendToPopup(MESSAGE_TYPES.REFRESH_COOKIES, {});
   }, []);
 
   return (
@@ -130,21 +140,9 @@ export default function App() {
               type="button"
               className="protection-control"
               onClick={() => {
-                setProtectionOn((wasOn) => {
-                  const nextOn = !wasOn;
-                  if (nextOn) {
-                    setCookieCrumbledByName((prev) => {
-                      const next = { ...prev };
-                      for (const name of Object.keys(next)) {
-                        if (PROTECTION_DEFAULT_CRUMBLED[name]) {
-                          next[name] = true;
-                        }
-                      }
-                      return next;
-                    });
-                  }
-                  return nextOn;
-                });
+                const nextOn = !protectionOn;
+                setProtectionOn(nextOn);
+                sendToPopup(MESSAGE_TYPES.TOGGLE_PROTECTION, { enabled: nextOn });
               }}
               aria-pressed={protectionOn}
               aria-label={
@@ -185,9 +183,9 @@ export default function App() {
                   />
                 )}
                 <SummaryCard
-                  total={24}
-                  harmful={18}
-                  safe={6}
+                  total={stats.total}
+                  harmful={stats.harmful}
+                  safe={stats.safe}
                   inactive={!protectionOn}
                 />
               </div>
@@ -205,14 +203,20 @@ export default function App() {
                 <Toggle
                   label="Block harmful cookies"
                   checked={blockHarmful}
-                  onChange={setBlockHarmful}
+                  onChange={(enabled) => {
+                    setBlockHarmful(enabled);
+                    sendToPopup(MESSAGE_TYPES.TOGGLE_BLOCK_HARMFUL, { enabled });
+                  }}
                   id="toggle-block"
                   disabled={!protectionOn}
                 />
                 <Toggle
                   label="Clipboard protection"
                   checked={clipboardProtection}
-                  onChange={setClipboardProtection}
+                  onChange={(enabled) => {
+                    setClipboardProtection(enabled);
+                    sendToPopup(MESSAGE_TYPES.TOGGLE_CLIPBOARD, { enabled });
+                  }}
                   id="toggle-clipboard"
                   disabled={!protectionOn}
                 />
@@ -281,7 +285,7 @@ export default function App() {
                       name={row.name}
                       category={row.category}
                       categoryKind={row.categoryKind}
-                      crumbled={cookieCrumbledByName[row.name]}
+                      crumbled={!row.allowed}
                       onCrumble={() => crumbleCookie(row.name)}
                       onDelete={() => requestDeleteCookie(row.name)}
                     />
