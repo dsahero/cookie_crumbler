@@ -1,24 +1,53 @@
 // Cookie Crumbler Background Script
-// Periodically scans and scrambles tracking cookies
+// Monitors and scrambles tracking cookies in real-time
 
-// Import shared cookie management functions
-importScripts('cookieManager.js');
+// Track if we're currently processing to prevent overlapping scans
+let isProcessing = false;
 
-// Alarm interval in minutes
-const SCAN_INTERVAL = 1; // 60 seconds
+// Cookies to ignore (frequently changing session cookies)
+const ignoredCookieNames = ['_dd_s', '_abck'];
 
-// Initialize alarm on extension install
+// Initialize on extension install
 browser.runtime.onInstalled.addListener(() => {
   console.log('Cookie Crumbler installed');
-  browser.alarms.create('cookieScan', { periodInMinutes: SCAN_INTERVAL });
-  // Run immediately on install
+  // Scan existing cookies on install
   scanAndProcessCookies();
 });
 
-// Listen for alarm to trigger cookie scan
-browser.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'cookieScan') {
-    scanAndProcessCookies();
+// Listen for cookie changes (added or modified)
+browser.cookies.onChanged.addListener(async (changeInfo) => {
+  // Only process when cookies are added or modified (not removed)
+  if (!changeInfo.removed && changeInfo.cookie) {
+    const cookie = changeInfo.cookie;
+    
+    // Ignore specific cookies that change frequently
+    if (ignoredCookieNames.includes(cookie.name)) {
+      return;
+    }
+    
+    // Skip if this cookie was just scrambled by us
+    if (isScrambled(cookie)) {
+      return;
+    }
+    
+    // Cookie was added or changed by website
+    console.log('Cookie added:', cookie.name);
+    
+    // If already scanned, unmark it so it can be re-scanned
+    if (isScanned(cookie)) {
+      unmarkAsScrambled(cookie);
+    }
+    
+    // Classify and process this specific cookie
+    const classification = await classifyCookie(cookie);
+    
+    if (classification === 'tracking') {
+      console.log(`Tracking cookie detected: ${cookie.name}`);
+      await scrambleCookie(cookie);
+    } else {
+      markAsScanned(cookie);
+      console.log(`Necessary cookie kept: ${cookie.name}`);
+    }
   }
 });
 

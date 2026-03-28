@@ -1,0 +1,53 @@
+.summary-card {
+  padding: 16px 18px 14px;
+  background: var(--color-card);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.summary-card__title {
+  margin: 0 0 12px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: 0.02em;
+}
+
+.summary-card__rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  gap: 12px;
+}
+
+.summary-card__row + .summary-card__row {
+  border-top: 1px solid rgba(62, 44, 35, 0.08);
+}
+
+.summary-card__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.summary-card__value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-card__value--harmful {
+  color: var(--color-red-soft);
+}
+
+.summary-card__value--safe {
+  color: var(--color-green);
+}
