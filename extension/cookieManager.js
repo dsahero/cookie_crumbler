@@ -51,7 +51,7 @@ async function classifyCookie(cookie) {
   //console.log('Classifying cookie:', cookie.name);
   
   // Temporary heuristic until ML is integrated
-  const trackingKeywords = ['analytics', 'tracking', 'ad', 'facebook', 'google'];
+  const trackingKeywords = ['analytics', 'tracking', 'shipping', 'ad', 'facebook', 'google'];
   const cookieName = cookie.name.toLowerCase();
   
   for (const keyword of trackingKeywords) {

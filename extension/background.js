@@ -30,14 +30,23 @@ browser.cookies.onChanged.addListener(async (changeInfo) => {
       return;
     }
     
-    // Cookie was added or changed by website - trigger full scan
+    // Cookie was added or changed by website
     console.log('Cookie added:', cookie.name);
     
-    // Prevent overlapping scans
-    if (!isProcessing) {
-      isProcessing = true;
-      await scanAndProcessCookies();
-      isProcessing = false;
+    // If already scanned, unmark it so it can be re-scanned
+    if (isScanned(cookie)) {
+      unmarkAsScrambled(cookie);
+    }
+    
+    // Classify and process this specific cookie
+    const classification = await classifyCookie(cookie);
+    
+    if (classification === 'tracking') {
+      console.log(`Tracking cookie detected: ${cookie.name}`);
+      await scrambleCookie(cookie);
+    } else {
+      markAsScanned(cookie);
+      console.log(`Necessary cookie kept: ${cookie.name}`);
     }
   }
 });
