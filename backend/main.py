@@ -8,7 +8,7 @@ def main(cookie_name: str, retention_period: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Cookie Category Classifier")
     parser.add_argument("cookie_name", type=str, help="Cookie / key name (e.g. 'cookiePreferences')")
-    parser.add_argument("retention_period", type=str, help="Retention period (e.g. 'session', '1 year')")
+    parser.add_argument("retention_period", type=str, help="Retention period in seconds, or 'session'")
     args = parser.parse_args()
 
     main(args.cookie_name, args.retention_period)

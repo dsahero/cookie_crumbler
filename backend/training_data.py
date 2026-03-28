@@ -18,10 +18,17 @@ df = df[feature_cols + [target_col]].dropna()
 encoders = {}
 X = pd.DataFrame()
 
-for col in feature_cols:
-    le = LabelEncoder()
-    X[col] = le.fit_transform(df[col].astype(str))
-    encoders[col] = le
+# Cookie name: label encode
+le = LabelEncoder()
+X["Cookie / Data Key name"] = le.fit_transform(df["Cookie / Data Key name"].astype(str))
+encoders["Cookie / Data Key name"] = le
+
+# Retention period: numeric (-1 for session)
+def parse_retention(val):
+    val = str(val).strip().lower()
+    return -1 if val == "session" else float(val)
+
+X["Retention period"] = df["Retention period"].apply(parse_retention)
 
 # Encode target
 target_encoder = LabelEncoder()
