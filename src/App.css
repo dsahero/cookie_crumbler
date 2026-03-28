@@ -59,48 +59,13 @@ body {
 
 .popup-views {
   position: relative;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
   min-height: 564px;
 }
 
 .popup-screen {
-  grid-area: 1 / 1;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  transition:
-    opacity 0.28s ease,
-    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.popup-screen--main {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-  z-index: 1;
-}
-
-.popup-screen--details {
-  opacity: 0;
-  transform: translateX(12px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.popup-views--details .popup-screen--main {
-  opacity: 0;
-  transform: translateX(-12px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.popup-views--details .popup-screen--details {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-  z-index: 1;
 }
 
 .popup-title {
