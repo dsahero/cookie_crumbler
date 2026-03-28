@@ -1,3 +1,5 @@
+import { classifyCookie, scrambleCookie, isScrambled, isScanned, unmarkAsScrambled, markAsScanned, scanAndProcessCookies } from './cookieManager.js';
+
 // CookieCrumblr background script
 // Monitors and scrambles tracking cookies in real-time
 

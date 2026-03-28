@@ -1,11 +1,20 @@
 // Shared Cookie Management Module
-// Used by both background.js (automatic scanning) and popup.js (manual trigger)
+// Used by both background.js (automatic scanning) and React popup UI
 
 // Global set to track scrambled cookies (shared across all callers)
-const scrambledCookiesTracker = new Set();
+// Using window for cross-context sharing in extension environment
+if (typeof window !== 'undefined') {
+  window.scrambledCookiesTracker = window.scrambledCookiesTracker || new Set();
+  window.scannedCookiesTracker = window.scannedCookiesTracker || new Set();
+}
 
-// Global set to track all scanned cookies (both necessary and tracking)
-const scannedCookiesTracker = new Set();
+// For background script context
+const scrambledCookiesTracker = (typeof window !== 'undefined') 
+  ? window.scrambledCookiesTracker 
+  : new Set();
+const scannedCookiesTracker = (typeof window !== 'undefined')
+  ? window.scannedCookiesTracker
+  : new Set();
 
 // Helper to create unique cookie identifier
 function getCookieKey(cookie) {
@@ -13,34 +22,49 @@ function getCookieKey(cookie) {
 }
 
 // Check if a cookie has been scrambled
-function isScrambled(cookie) {
+export function isScrambled(cookie) {
   return scrambledCookiesTracker.has(getCookieKey(cookie));
 }
 
 // Check if a cookie has been scanned
-function isScanned(cookie) {
+export function isScanned(cookie) {
   return scannedCookiesTracker.has(getCookieKey(cookie));
 }
 
 // Mark a cookie as scrambled
-function markAsScrambled(cookie) {
+export function markAsScrambled(cookie) {
   scrambledCookiesTracker.add(getCookieKey(cookie));
   scannedCookiesTracker.add(getCookieKey(cookie));
 }
 
 // Mark a cookie as scanned (but not scrambled)
-function markAsScanned(cookie) {
+export function markAsScanned(cookie) {
   scannedCookiesTracker.add(getCookieKey(cookie));
 }
 
 // Remove a cookie from scrambled tracking (when website changes it)
-function unmarkAsScrambled(cookie) {
+export function unmarkAsScrambled(cookie) {
   scrambledCookiesTracker.delete(getCookieKey(cookie));
   scannedCookiesTracker.delete(getCookieKey(cookie));
 }
 
+// Reset all tracking (clear scrambled and scanned cookies)
+export function resetTracking() {
+  scrambledCookiesTracker.clear();
+  scannedCookiesTracker.clear();
+  console.log('Cookie tracking reset - all cookies will be rescanned');
+}
+
+// Get current stats from tracking
+export function getStats() {
+  const total = scrambledCookiesTracker.size + scannedCookiesTracker.size;
+  const harmful = scrambledCookiesTracker.size;
+  const safe = scannedCookiesTracker.size;
+  return { total, harmful, safe };
+}
+
 // ML Classification Function (Placeholder)
-async function classifyCookie(cookie) {
+export async function classifyCookie(cookie) {
   // TODO: Implement ML algorithm to classify cookies
   // This should call the backend ML service or use a local model
   
@@ -64,7 +88,7 @@ async function classifyCookie(cookie) {
 }
 
 // Scramble cookie by modifying its value
-async function scrambleCookie(cookie) {
+export async function scrambleCookie(cookie) {
   try {
     // Remove leading dot from domain if present (e.g., ".macys.com" -> "macys.com")
     const domain = cookie.domain.startsWith('.') ? cookie.domain.slice(1) : cookie.domain;
@@ -119,7 +143,7 @@ function generateRandomString(length) {
 }
 
 // Main function to scan and process all cookies
-async function scanAndProcessCookies() {
+export async function scanAndProcessCookies() {
   try {
     console.log('Starting cookie scan...');
     
