@@ -3,11 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cookie Crumbler</title>
-    <script type="module" crossorigin src="./assets/popup-BajDA90u.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/popup-BDXy6TaN.css">
+    <title>CookieCrumblr</title>
+    <script type="module" crossorigin src="./assets/popup-cTG6Kt1l.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/popup-B-AQbqoR.css">
   </head>
   <body>
     <div id="root"></div>
+    <!-- Load cookieManager.js first (contains shared functions) -->
+    <script src="./cookieManager.js"></script>
+    <!-- Bridge script between React UI and browser extension APIs -->
+    <script src="./popup.js"></script>
   </body>
 </html>
